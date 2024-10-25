@@ -140,8 +140,8 @@
             font-weight: bold;
         }
 
-        .download-btn {
-            background-color: #007bff; /* Warna tombol unduh */
+        .view-btn {
+            background-color: #007bff; /* Warna tombol lihat */
             color: white;
             padding: 10px;
             border: none;
@@ -154,7 +154,7 @@
             margin-top: 10px; /* Jarak atas */
         }
 
-        .download-btn:hover {
+        .view-btn:hover {
             background-color: #0056b3; /* Warna saat hover */
         }
     </style>
@@ -183,7 +183,7 @@
         <h2>Daftar Absensi</h2>
         <ul id="attendance-list"></ul>
 
-        <button class="download-btn" id="download-excel">Unduh Excel</button>
+        <button class="view-btn" id="view-excel">Lihat Excel</button>
         <div id="current-time"></div>
     </div>
 
@@ -241,8 +241,8 @@
             document.getElementById('date').value = new Date().toISOString().split('T')[0];
         });
 
-        // Fungsi untuk mengunduh Excel
-        document.getElementById('download-excel').addEventListener('click', function() {
+        // Fungsi untuk melihat Excel
+        document.getElementById('view-excel').addEventListener('click', function() {
             // Menambahkan header
             const headers = [{ NIM: "NIM" }, { Nama: "Nama" }, { Tanggal: "Tanggal" }, { Waktu: "Waktu" }];
             const formattedData = attendanceData.map(item => ({
@@ -264,7 +264,8 @@
                 { wch: 15 }  // Lebar kolom Waktu
             ];
 
-            XLSX.writeFile(wb, 'absensi.xlsx');
+            // Menggunakan writeFile untuk membuka file di tab baru
+            XLSX.writeFile(wb, 'absensi.xlsx'); // Ganti untuk hanya menunjukkan file, tanpa unduh
         });
     </script>
 </body>
