@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Manual</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input[type="text"], input[type="date"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: calc(100% - 20px);
+            padding: 8px; /* Padding dikurangi untuk memperkecil tombol */
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 14px; /* Ukuran font dikurangi */
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background: #e9ecef;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+            opacity: 0;
+            transform: scale(0.5); /* Memperbesar efek zoom */
+            animation: fadeIn 0.5s forwards;
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: scale(1); /* Skalakan ke ukuran normal */
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.5); /* Kecilkan saat menghapus */
+            }
+        }
+
+        .info {
+            display: flex;
+            flex-direction: column;
+            padding-right: 10px;
+        }
+
+        .time {
+            font-size: 0.8em;
+            color: #555;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .unindra-logo {
+            width: 100px;
+            height: auto;
+        }
+
+        #current-time {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .download-btn {
+            background-color: #007bff; /* Warna tombol unduh */
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-align: center; /* Rata tengah untuk teks */
+            font-size: 16px; /* Ukuran font yang lebih besar */
+            width: 100%; /* Lebar penuh */
+            margin-top: 10px; /* Jarak atas */
+        }
+
+        .download-btn:hover {
+            background-color: #0056b3; /* Warna saat hover */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://4.bp.blogspot.com/-eYH9ZpfEsZ0/UrGcZiyaFoI/AAAAAAAAAAo/_aKOHbJbVZw/s1600/unindra.jpg" alt="Logo Universitas Indraprasta PGRI" class="unindra-logo">
+            <h1>Universitas Indraprasta PGRI</h1>
+        </div>
+        
+        <h2>Form Absensi XN</h2>
+        <form id="attendance-form">
+            <label for="nim">NIM:</label>
+            <input type="text" id="nim" required>
+            
+            <label for="name">Nama:</label>
+            <input type="text" id="name" required>
+            
+            <label for="date">Tanggal:</label>
+            <input type="date" id="date" required>
+            
+            <button type="submit">Tambah Absensi</button> <!-- Tombol ini lebih kecil -->
+        </form>
+
+        <h2>Daftar Absensi</h2>
+        <ul id="attendance-list"></ul>
+
+        <button class="download-btn" id="download-excel">Unduh Excel</button>
+        <div id="current-time"></div>
+    </div>
+
+    <script>
+        const attendanceData = []; // Array untuk menyimpan data absensi
+
+        function updateRealTime() {
+            const now = new Date();
+            const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const formattedDate = now.toLocaleDateString('id-ID');
+            return { time: formattedTime, date: formattedDate };
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0]; 
+            document.getElementById('date').value = today;
+
+            setInterval(() => {
+                const { time, date } = updateRealTime();
+                document.getElementById('current-time').innerText = `Waktu: ${time}, Tanggal: ${date}`;
+            }, 1000);
+        });
+
+        document.getElementById('attendance-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const nim = document.getElementById('nim').value;
+            const name = document.getElementById('name').value;
+            const date = document.getElementById('date').value;
+            const { time } = updateRealTime();
+
+            const li = document.createElement('li');
+            li.innerHTML = `<div class="info"><strong>NIM: ${nim}</strong><strong>Nama: ${name}</strong><strong>Tanggal: ${date}</strong><span class="time">Waktu: ${time}</span></div>`;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerText = 'Hapus';
+            deleteBtn.className = 'delete-btn';
+
+            deleteBtn.addEventListener('click', function() {
+                li.style.animation = 'fadeOut 0.5s forwards'; // Menambahkan animasi saat dihapus
+                li.addEventListener('animationend', function() {
+                    li.remove(); // Hapus dari DOM setelah animasi selesai
+                    const index = attendanceData.findIndex(item => item.nim === nim && item.name === name && item.date === date && item.time === time);
+                    if (index > -1) {
+                        attendanceData.splice(index, 1);
+                    }
+                });
+            });
+
+            li.appendChild(deleteBtn);
+            document.getElementById('attendance-list').appendChild(li);
+
+            attendanceData.push({ nim, name, date, time });
+            document.getElementById('attendance-form').reset();
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        });
+
+        // Fungsi untuk mengunduh Excel
+        document.getElementById('download-excel').addEventListener('click', function() {
+            // Menambahkan header
+            const headers = [{ NIM: "NIM" }, { Nama: "Nama" }, { Tanggal: "Tanggal" }, { Waktu: "Waktu" }];
+            const formattedData = attendanceData.map(item => ({
+                NIM: item.nim,
+                Nama: item.name,
+                Tanggal: item.date,
+                Waktu: item.time
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(formattedData, { header: ["NIM", "Nama", "Tanggal", "Waktu"] });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Absensi");
+
+            // Mengatur lebar kolom
+            ws['!cols'] = [
+                { wch: 10 }, // Lebar kolom NIM
+                { wch: 20 }, // Lebar kolom Nama
+                { wch: 15 }, // Lebar kolom Tanggal
+                { wch: 15 }  // Lebar kolom Waktu
+            ];
+
+            XLSX.writeFile(wb, 'absensi.xlsx');
+        });
+    </script>
+</body>
+</html>
